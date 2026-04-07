@@ -24,7 +24,7 @@ jobs:
 
       - name: Build
         run: |
-          jupyter lite build --output-dir dist/ --no-sourcemaps
+          jupyter lite build --output-dir dist/ --no-sourcemaps --base-url /jupyter/
           # Write VERSION file for cache validation by moss
           JUPYTERLITE_VERSION=$(pip show jupyterlite-core | grep ^Version | cut -d' ' -f2)
           PYODIDE_VERSION=$(pip show jupyterlite-pyodide-kernel | grep ^Version | cut -d' ' -f2)
