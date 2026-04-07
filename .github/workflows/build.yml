@@ -1,0 +1,67 @@
+name: Build JupyterLite
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Monthly rebuild to pick up new JupyterLite releases
+    - cron: '0 0 1 * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install JupyterLite
+        run: |
+          pip install jupyterlite-core jupyterlite-pyodide-kernel
+
+      - name: Build
+        run: |
+          jupyter lite build --output-dir dist/ --no-sourcemaps
+          # Write VERSION file for cache validation by moss
+          JUPYTERLITE_VERSION=$(pip show jupyterlite-core | grep ^Version | cut -d' ' -f2)
+          PYODIDE_VERSION=$(pip show jupyterlite-pyodide-kernel | grep ^Version | cut -d' ' -f2)
+          cat > dist/VERSION <<EOF
+          jupyterlite=${JUPYTERLITE_VERSION}
+          pyodide-kernel=${PYODIDE_VERSION}
+          built=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EOF
+
+      - name: Measure size
+        run: |
+          du -sh dist/
+          find dist/ -type f | wc -l
+
+      - name: Create release archive
+        run: |
+          cd dist && zip -r ../jupyterlite.zip .
+
+      - name: Get version for tag
+        id: version
+        run: |
+          VERSION=$(pip show jupyterlite-core | grep ^Version | cut -d' ' -f2)
+          echo "tag=v${VERSION}-$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+          echo "name=JupyterLite ${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.name }}
+          files: jupyterlite.zip
+          body: |
+            Pre-built JupyterLite static assets for embedding in moss sites.
+
+            Built with:
+            - jupyterlite-core ${{ steps.version.outputs.tag }}
+            - jupyterlite-pyodide-kernel
+            - No source maps (optimized for size)
+
+            Download `jupyterlite.zip` and extract to serve as static files.
