@@ -20,7 +20,7 @@ jobs:
 
       - name: Install JupyterLite
         run: |
-          pip install jupyterlite-core jupyterlite-pyodide-kernel
+          pip install jupyterlite-core jupyterlite-pyodide-kernel jupyterlite-p5-kernel
 
       - name: Build
         run: |
@@ -28,9 +28,11 @@ jobs:
           # Write VERSION file for cache validation by moss
           JUPYTERLITE_VERSION=$(pip show jupyterlite-core | grep ^Version | cut -d' ' -f2)
           PYODIDE_VERSION=$(pip show jupyterlite-pyodide-kernel | grep ^Version | cut -d' ' -f2)
+          P5_KERNEL_VERSION=$(pip show jupyterlite-p5-kernel | grep ^Version | cut -d' ' -f2)
           cat > dist/VERSION <<EOF
           jupyterlite=${JUPYTERLITE_VERSION}
           pyodide-kernel=${PYODIDE_VERSION}
+          p5-kernel=${P5_KERNEL_VERSION}
           built=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           EOF
 
@@ -62,6 +64,7 @@ jobs:
             Built with:
             - jupyterlite-core ${{ steps.version.outputs.tag }}
             - jupyterlite-pyodide-kernel
+            - jupyterlite-p5-kernel
             - No source maps (optimized for size)
 
             Download `jupyterlite.zip` and extract to serve as static files.
